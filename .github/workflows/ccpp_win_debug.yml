@@ -61,7 +61,10 @@ jobs:
       run: msbuild /m /P:Configuration=Debug INSTALL.vcxproj
     - name: create directory and copy into it
       working-directory: ./build
-      run: ls
+      run:  |
+        dir
+        dir src
+        dir src\Debug
     - name: create directory and copy into it
       working-directory: ./build
       shell: powershell
