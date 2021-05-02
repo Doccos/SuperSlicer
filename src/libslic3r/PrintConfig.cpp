@@ -22,9 +22,11 @@ namespace Slic3r {
 
 static void assign_printer_technology_to_unknown(t_optiondef_map &options, PrinterTechnology printer_technology)
 {
-    for (std::pair<const t_config_option_key, ConfigOptionDef> &kvp : options)
-        if (kvp.second.printer_technology == ptUnknown)
+    for (std::pair<const t_config_option_key, ConfigOptionDef>& kvp : options) {
+        if (kvp.second.printer_technology == ptUnknown) {
             kvp.second.printer_technology = printer_technology;
+        }
+    }
 }
 
 PrintConfigDef::PrintConfigDef()
@@ -34,11 +36,11 @@ PrintConfigDef::PrintConfigDef()
     assign_printer_technology_to_unknown(this->options, ptFFF | ptSLA);
     this->init_fff_params();
     this->init_extruder_option_keys();
+    this->init_milling_params();
     assign_printer_technology_to_unknown(this->options, ptFFF);
     this->init_sla_params();
     assign_printer_technology_to_unknown(this->options, ptSLA);
-    this->init_milling_params();
-    assign_printer_technology_to_unknown(this->options, ptMill);
+    //assign_printer_technology_to_unknown(this->options, ptMill);
 }
 
 void PrintConfigDef::init_common_params()
@@ -5655,16 +5657,20 @@ double PrintConfig::min_object_distance(const ConfigBase *config, double ref_hei
 
 PrinterTechnology printer_technology(const ConfigBase &cfg)
 {
+    std::cout << "try to infer printer_technology\n";
     const ConfigOptionEnum<PrinterTechnology> *opt = cfg.option<ConfigOptionEnum<PrinterTechnology>>("printer_technology");
     
     if (opt) return opt->value;
     
     const ConfigOptionBool *export_opt = cfg.option<ConfigOptionBool>("export_sla");
+    if (export_opt && export_opt->getBool()) std::cout << "it export_sla -> sla\n";
     if (export_opt && export_opt->getBool()) return ptSLA;
     
     export_opt = cfg.option<ConfigOptionBool>("export_gcode");
-    if (export_opt && export_opt->getBool()) return ptFFF;    
+    if (export_opt && export_opt->getBool()) std::cout << "it export_gcode -> fff\n";
+    if (export_opt && export_opt->getBool()) return ptFFF;
     
+    std::cout << "Don't find anything, return unknown\n";
     return ptUnknown;
 }
 

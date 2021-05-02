@@ -106,6 +106,8 @@ BackgroundSlicingProcess::~BackgroundSlicingProcess()
 
 bool BackgroundSlicingProcess::select_technology(PrinterTechnology tech)
 {
+	std::cout << "BackgroundSlicingProcess:select_technology(" << (int)tech << ")\n";
+
 	bool changed = false;
 	if (m_print == nullptr || m_print->technology() != tech) {
 		if (m_print != nullptr)
@@ -113,7 +115,7 @@ bool BackgroundSlicingProcess::select_technology(PrinterTechnology tech)
 		switch (tech) {
 		case ptFFF: m_print = m_fff_print; break;
 		case ptSLA: m_print = m_sla_print; break;
-        case ptSLS: m_print = m_fff_print; break;
+        //case ptSLS: m_print = m_fff_print; break;
         default: assert(false); break;
 		}
 		changed = true;
@@ -256,6 +258,7 @@ void BackgroundSlicingProcess::process_sla()
 
 void BackgroundSlicingProcess::thread_proc()
 {
+	std::cout << "start backgroundslicingprocess thread\n";
     set_current_thread_name("slic3r_BgSlcPcs");
 	name_tbb_thread_pool_threads();
 
@@ -269,6 +272,7 @@ void BackgroundSlicingProcess::thread_proc()
 	for (;;) {
 		//assert(m_state == STATE_IDLE || m_state == STATE_CANCELED || m_state == STATE_FINISHED);
 		// Wait until a new task is ready to be executed, or this thread should be finished.
+		std::cout << "backgroundslicingprocess thread ready to wait\n";
 		lck.lock();
 		m_condition.wait(lck, [this](){ return m_state == STATE_STARTED || m_state == STATE_EXIT; });
 		if (m_state == STATE_EXIT)
@@ -280,10 +284,11 @@ void BackgroundSlicingProcess::thread_proc()
 		std::exception_ptr exception;
 		try {
 			assert(m_print != nullptr);
+			std::cout << "backgroundslicingprocess thread going to process!\n";
 			switch(m_print->technology()) {
 				case ptFFF: this->process_fff(); break;
                 case ptSLA: this->process_sla(); break;
-                case ptSLS: this->process_fff(); break;
+                //case ptSLS: this->process_fff(); break;
 				default: m_print->process(); break;
 			}
 		} catch (CanceledException & /* ex */) {
@@ -343,6 +348,7 @@ void BackgroundSlicingProcess::join_background_thread()
 
 bool BackgroundSlicingProcess::start()
 {
+	std::cout << "want to start backgroundslicingprocess thread\n";
 	if (m_print->empty())
 		// The print is empty (no object in Model, or all objects are out of the print bed).
 		return false;

@@ -45,6 +45,13 @@ PresetBundle::PresetBundle() :
     printers(Preset::TYPE_PRINTER, Preset::printer_options(), static_cast<const PrintRegionConfig&>(FullPrintConfig::defaults()), "- default FFF -"),
     physical_printers(PhysicalPrinter::printer_options())
 {
+
+    std::cout << "create PresetBundle, does it has the printer tech? "<< (this->printers.preset(0).config.has("printer_technology") ? "yes" : "no");
+    if(this->printers.preset(0).config.has("printer_technology"))
+        std::cout << ", value: " << (int)(this->printers.preset(0).config.option<ConfigOptionEnum<PrinterTechnology>>("printer_technology")->value) 
+        << " @"<< (uint64_t)this->printers.preset(0).config.option<ConfigOptionEnum<PrinterTechnology>>("printer_technology") << "\n";
+    std::cout << "create PresetBundle with default printer as " << (int)this->printers.preset(0).printer_technology() << "\n";
+    
     // The following keys are handled by the UI, they do not have a counterpart in any StaticPrintConfig derived classes,
     // therefore they need to be handled differently. As they have no counterpart in StaticPrintConfig, they are not being
     // initialized based on PrintConfigDef(), but to empty values (zeros, empty vectors, empty strings).
@@ -73,7 +80,9 @@ PresetBundle::PresetBundle() :
     this->sla_prints.default_preset().compatible_printers_condition();
     this->sla_prints.default_preset().inherits();
 
+    // add a second default printer preset after FFF from the 'printers' constructor
     this->printers.add_default_preset(Preset::sla_printer_options(), static_cast<const SLAMaterialConfig&>(SLAFullPrintConfig::defaults()), "- default SLA -");
+    std::cout << "set &this->printers.preset(1).printer_technology_ref() to SLA (" << (int)ptSLA << "\n";
     this->printers.preset(1).printer_technology_ref() = ptSLA;
     for (size_t i = 0; i < 2; ++ i) {
 		// The following ugly switch is to avoid printers.preset(0) to return the edited instance, as the 0th default is the current one.
@@ -103,6 +112,8 @@ PresetBundle::PresetBundle() :
     this->printers     .select_preset(0);
 
     this->project_config.apply_only(FullPrintConfig::defaults(), s_project_options);
+
+    std::cout << "end PresetBundle creation with default printer as " << (int)this->printers.preset(0).printer_technology() << "\n";
 }
 
 PresetBundle::~PresetBundle()
@@ -164,8 +175,10 @@ void PresetBundle::setup_directories()
 
 void PresetBundle::load_presets(AppConfig &config, const std::string &preferred_model_id)
 {
+    std::cout << "PresetBundle::load_presets test point 1 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
     // First load the vendor specific system presets.
     std::string errors_cummulative = this->load_system_presets();
+    std::cout << "PresetBundle::load_presets test point 2 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
 
     const std::string dir_user_presets = data_dir()
 #ifdef SLIC3R_PROFILE_USE_PRESETS_SUBDIR
@@ -196,21 +209,27 @@ void PresetBundle::load_presets(AppConfig &config, const std::string &preferred_
         errors_cummulative += err.what();
     }
     try {
+        std::cout << "PresetBundle::load_presets test point 5 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
         this->printers.load_presets(dir_user_presets, "printer");
     } catch (const std::runtime_error &err) {
         errors_cummulative += err.what();
     }
     try {
+        std::cout << "PresetBundle::load_presets test point 6 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
         this->physical_printers.load_printers(dir_user_presets, "physical_printer");
     } catch (const std::runtime_error &err) {
         errors_cummulative += err.what();
     }
+    std::cout << "PresetBundle::load_presets test point 7 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
     this->update_multi_material_filament_presets();
+    std::cout << "PresetBundle::load_presets test point 8 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
     this->update_compatible(PresetSelectCompatibleType::Never);
     if (! errors_cummulative.empty())
         throw Slic3r::RuntimeError(errors_cummulative);
+    std::cout << "PresetBundle::load_presets test point 9 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
 
     this->load_selections(config, preferred_model_id);
+    std::cout << "PresetBundle::load_presets test point 10 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
 }
 
 // Load system presets into this PresetBundle.
@@ -1235,6 +1254,8 @@ size_t PresetBundle::load_configbundle(const std::string &path, unsigned int fla
 			                    section.first << "\" contains invalid \"renamed_from\" key, which is being ignored.";
                    		}
                 	}
+                    if (kvp.first == "printer_technology")
+                        std::cout << "PresetBundle::loadconfigbundle :: deserialize a conf in " << (uint64_t)(&config) << "\n";
                     config.set_deserialize(kvp.first, kvp.second.data());
                 }
             };
@@ -1453,8 +1474,10 @@ void PresetBundle::update_multi_material_filament_presets()
 
 void PresetBundle::update_compatible(PresetSelectCompatibleType select_other_print_if_incompatible, PresetSelectCompatibleType select_other_filament_if_incompatible)
 {
+    std::cout << "PresetBundle::update_compatible test point 1 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
     const Preset					&printer_preset					    = this->printers.get_edited_preset();
 	const PresetWithVendorProfile    printer_preset_with_vendor_profile = this->printers.get_preset_with_vendor_profile(printer_preset);
+    std::cout << "PresetBundle::update_compatible test point 2 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
 
     class PreferedProfileMatch
     {
@@ -1551,40 +1574,51 @@ void PresetBundle::update_compatible(PresetSelectCompatibleType select_other_pri
 	switch (printer_preset.printer_technology()) {
     case ptFFF:
     {
+        std::cout << "PresetBundle::update_compatible test point 3 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
 		assert(printer_preset.config.has("default_print_profile"));
 		assert(printer_preset.config.has("default_filament_profile"));
         const std::vector<std::string> &prefered_filament_profiles = printer_preset.config.option<ConfigOptionStrings>("default_filament_profile")->values;
         this->prints.update_compatible(printer_preset_with_vendor_profile, nullptr, select_other_print_if_incompatible,
             PreferedPrintProfileMatch(this->prints.get_edited_preset(), printer_preset.config.opt_string("default_print_profile")));
+        std::cout << "PresetBundle::update_compatible test point 4 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
         const PresetWithVendorProfile   print_preset_with_vendor_profile = this->prints.get_edited_preset_with_vendor_profile();
+        std::cout << "PresetBundle::update_compatible test point 5 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
         // Remember whether the filament profiles were compatible before updating the filament compatibility.
         std::vector<char> 				filament_preset_was_compatible(this->filament_presets.size(), false);
         for (size_t idx = 0; idx < this->filament_presets.size(); ++ idx) {
             Preset *preset = this->filaments.find_preset(this->filament_presets[idx], false);
             filament_preset_was_compatible[idx] = preset != nullptr && preset->is_compatible;
         }
+        std::cout << "PresetBundle::update_compatible test point 6 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
         // First select a first compatible profile for the preset editor.
         this->filaments.update_compatible(printer_preset_with_vendor_profile, &print_preset_with_vendor_profile, select_other_filament_if_incompatible,
             PreferedFilamentsProfileMatch(this->filaments.get_edited_preset(), prefered_filament_profiles));
+        std::cout << "PresetBundle::update_compatible test point 7 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
         if (select_other_filament_if_incompatible != PresetSelectCompatibleType::Never) {
             // Verify validity of the current filament presets.
             const std::string prefered_filament_profile = prefered_filament_profiles.empty() ? std::string() : prefered_filament_profiles.front();
+            std::cout << "PresetBundle::update_compatible test point 8 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
             if (this->filament_presets.size() == 1) {
                 // The compatible profile should have been already selected for the preset editor. Just use it.
             	if (select_other_filament_if_incompatible == PresetSelectCompatibleType::Always || filament_preset_was_compatible.front())
                 	this->filament_presets.front() = this->filaments.get_edited_preset().name;
+                std::cout << "PresetBundle::update_compatible test point 9 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
             } else {
                 for (size_t idx = 0; idx < this->filament_presets.size(); ++ idx) {
                     std::string &filament_name = this->filament_presets[idx];
                     Preset      *preset = this->filaments.find_preset(filament_name, false);
-                    if (preset == nullptr || (! preset->is_compatible && (select_other_filament_if_incompatible == PresetSelectCompatibleType::Always || filament_preset_was_compatible[idx])))
+                    std::cout << "PresetBundle::update_compatible test point 10_"<< idx <<" : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
+                    if (preset == nullptr || (!preset->is_compatible && (select_other_filament_if_incompatible == PresetSelectCompatibleType::Always || filament_preset_was_compatible[idx]))) {
                         // Pick a compatible profile. If there are prefered_filament_profiles, use them.
                         filament_name = this->filaments.first_compatible(
                             PreferedFilamentProfileMatch(preset,
                                 (idx < prefered_filament_profiles.size()) ? prefered_filament_profiles[idx] : prefered_filament_profile)).name;
+                        std::cout << "PresetBundle::update_compatible test point 11_" << idx << " : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
+                    }
                 }
             }
         }
+        std::cout << "PresetBundle::update_compatible test point 12 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
 		break;
     }
     case ptSLA:
@@ -1600,6 +1634,7 @@ void PresetBundle::update_compatible(PresetSelectCompatibleType select_other_pri
 	}
     default: break;
     }
+    std::cout << "PresetBundle::update_compatible test point 13 : (" << this->printers.get_edited_preset().name << ") = " << (int)this->printers.get_edited_preset().printer_technology() << "\n";
 }
 
 void PresetBundle::export_configbundle(const std::string &path, bool export_system_settings, bool export_physical_printers/* = false*/)

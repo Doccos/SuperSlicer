@@ -261,48 +261,62 @@ std::vector<std::string> ConfigOptionDef::cli_args(const std::string &key) const
     return args;
 }
 
-ConfigOption* ConfigOptionDef::create_empty_option() const
+std::unique_ptr<ConfigOption> ConfigOptionDef::create_empty_option() const
 {
 	if (this->nullable) {
 	    switch (this->type) {
-	    case coFloats:          return new ConfigOptionFloatsNullable();
-	    case coInts:            return new ConfigOptionIntsNullable();
-	    case coPercents:        return new ConfigOptionPercentsNullable();
-        case coFloatsOrPercents: return new ConfigOptionFloatsOrPercentsNullable();
-	    case coBools:           return new ConfigOptionBoolsNullable();
+	    case coFloats:          return std::unique_ptr<ConfigOption>(new ConfigOptionFloatsNullable());
+	    case coInts:            return std::unique_ptr<ConfigOption>(new ConfigOptionIntsNullable());
+	    case coPercents:        return std::unique_ptr<ConfigOption>(new ConfigOptionPercentsNullable());
+        case coFloatsOrPercents: return std::unique_ptr<ConfigOption>(new ConfigOptionFloatsOrPercentsNullable());
+	    case coBools:           return std::unique_ptr<ConfigOption>(new ConfigOptionBoolsNullable());
 	    default:                throw Slic3r::RuntimeError(std::string("Unknown option type for nullable option ") + this->label);
 	    }
 	} else {
 	    switch (this->type) {
-	    case coFloat:           return new ConfigOptionFloat();
-	    case coFloats:          return new ConfigOptionFloats();
-	    case coInt:             return new ConfigOptionInt();
-	    case coInts:            return new ConfigOptionInts();
-	    case coString:          return new ConfigOptionString();
-	    case coStrings:         return new ConfigOptionStrings();
-	    case coPercent:         return new ConfigOptionPercent();
-	    case coPercents:        return new ConfigOptionPercents();
-	    case coFloatOrPercent:  return new ConfigOptionFloatOrPercent();
-        case coFloatsOrPercents: return new ConfigOptionFloatsOrPercents();
-	    case coPoint:           return new ConfigOptionPoint();
-	    case coPoints:          return new ConfigOptionPoints();
-	    case coPoint3:          return new ConfigOptionPoint3();
+	    case coFloat:           return std::unique_ptr<ConfigOption>(new ConfigOptionFloat());
+	    case coFloats:          return std::unique_ptr<ConfigOption>(new ConfigOptionFloats());
+	    case coInt:             return std::unique_ptr<ConfigOption>(new ConfigOptionInt());
+	    case coInts:            return std::unique_ptr<ConfigOption>(new ConfigOptionInts());
+	    case coString:          return std::unique_ptr<ConfigOption>(new ConfigOptionString());
+	    case coStrings:         return std::unique_ptr<ConfigOption>(new ConfigOptionStrings());
+	    case coPercent:         return std::unique_ptr<ConfigOption>(new ConfigOptionPercent());
+	    case coPercents:        return std::unique_ptr<ConfigOption>(new ConfigOptionPercents());
+	    case coFloatOrPercent:  return std::unique_ptr<ConfigOption>(new ConfigOptionFloatOrPercent());
+        case coFloatsOrPercents: return std::unique_ptr<ConfigOption>(new ConfigOptionFloatsOrPercents());
+	    case coPoint:           return std::unique_ptr<ConfigOption>(new ConfigOptionPoint());
+	    case coPoints:          return std::unique_ptr<ConfigOption>(new ConfigOptionPoints());
+	    case coPoint3:          return std::unique_ptr<ConfigOption>(new ConfigOptionPoint3());
 	//    case coPoint3s:         return new ConfigOptionPoint3s();
-	    case coBool:            return new ConfigOptionBool();
-	    case coBools:           return new ConfigOptionBools();
-	    case coEnum:            return new ConfigOptionEnumGeneric(this->enum_keys_map);
+	    case coBool:            return std::unique_ptr<ConfigOption>(new ConfigOptionBool());
+	    case coBools:           return std::unique_ptr<ConfigOption>(new ConfigOptionBools());
+	    case coEnum:            return std::unique_ptr<ConfigOption>(new ConfigOptionEnumGeneric(this->enum_keys_map));
 	    default:                throw Slic3r::RuntimeError(std::string("Unknown option type for option ") + this->label);
 	    }
 	}
 }
 
-ConfigOption* ConfigOptionDef::create_default_option() const
+std::unique_ptr<ConfigOption> ConfigOptionDef::create_default_option() const
 {
-    if (this->default_value)
-        return (this->default_value->type() == coEnum) ?
+    if (this->opt_key == "printer_technology") std::cout << "ConfigOptionDef::create_default_option printer_technology\n";
+    if (this->default_value) {
+        if (this->opt_key == "printer_technology") std::cout << "ConfigOptionDef::create_default_option it extists a printer_technology\n";
+        if (this->default_value->type() == coEnum) {
+            if (this->opt_key == "printer_technology") std::cout << "ConfigOptionDef::create_default_option create a defautl with value "<< this->default_value->getInt()<<" \n";
             // Special case: For a DynamicConfig, convert a templated enum to a generic enum.
-            new ConfigOptionEnumGeneric(this->enum_keys_map, this->default_value->getInt()) :
-            this->default_value->clone();
+            ConfigOptionEnumGeneric* p= new ConfigOptionEnumGeneric(this->enum_keys_map, this->default_value->getInt());
+            if (this->opt_key == "printer_technology") {
+                std::cout << "ConfigOptionDef::create_default_option @" << (uint64_t)p << " => " << p->value << " \n";
+                std::cout << "ref: phony" << (uint64_t)(&p->phony) << ", value: => " << (uint64_t)(&p->value) << ", keymapptr: " << (uint64_t)(&p->keys_map) << " \n";
+                p->value = this->default_value->getInt();
+                std::cout << "ConfigOptionDef::create_default_option set it again:" << p->value << " \n";
+            }
+            return std::unique_ptr<ConfigOption>(p);
+        } else {
+            return std::unique_ptr<ConfigOption>(this->default_value->clone());
+        }
+    }
+    if (this->opt_key == "printer_technology") std::cout << "ConfigOptionDef::create_default_option no default, create one with 0 " << this->create_empty_option()->getInt() << " \n";
     return this->create_empty_option();
 }
 
@@ -430,7 +444,24 @@ void ConfigBase::apply_only(const ConfigBase &other, const t_config_option_keys 
         // Create a new option with default value for the key.
         // If the key is not in the parameter definition, or this ConfigBase is a static type and it does not support the parameter,
         // an exception is thrown if not ignore_nonexistent.
+        bool first_time = false;
+        if (opt_key == "printer_technology") {
+            first_time = (this->option(opt_key, false) == nullptr);
+        }
         ConfigOption *my_opt = this->option(opt_key, true);
+        if (opt_key == "printer_technology") {
+            std::cout << "Config:"<< (uint64_t)(this)<<"::apply_only printer_technology";
+            if (first_time)
+                std::cout << " for the first time to default @" << (uint64_t)(my_opt) <<"==@"<< (uint64_t)(this->option<ConfigOptionEnum<PrinterTechnology>>("printer_technology")) << " value " << (int)(this->option<ConfigOptionEnum<PrinterTechnology>>("printer_technology")->value);
+            else
+                std::cout << " from @"<< (uint64_t)(my_opt) << "==@" << (uint64_t)(this->option<ConfigOptionEnum<PrinterTechnology>>("printer_technology")) <<" value " << (int)(this->option<ConfigOptionEnum<PrinterTechnology>>("printer_technology")->value);
+            const ConfigOption* other_opt = other.option(opt_key);
+            if (other_opt == nullptr)
+                std::cout << " to nothing because it doesn't exist\n";
+            else std::cout << " to value:" << (int)other.option<ConfigOptionEnum<PrinterTechnology>>(opt_key)->value 
+                << "by conf @"<<(uint64_t)(&other_opt) <<" : "<< (uint64_t)(other.option<ConfigOptionEnum<PrinterTechnology>>(opt_key))
+                << "\n";
+        }
         // If we didn't find an option, look for any other option having this as an alias.
         if (my_opt == nullptr) {
             const ConfigDef       *def = this->def();
@@ -504,6 +535,11 @@ std::string ConfigBase::opt_serialize(const t_config_option_key &opt_key) const
 
 void ConfigBase::set(const std::string &opt_key, int value, bool create)
 {
+    if (opt_key == "printer_technology") {
+        std::cout << "Config::set printer_technology";
+            std::cout << " from value " << (int)(this->option<ConfigOptionEnum<PrinterTechnology>>("printer_technology")->value);
+        std::cout << " to "<< value <<"\n";
+    }
     ConfigOption *opt = this->option_throw(opt_key, create);
     switch (opt->type()) {
     	case coInt:    static_cast<ConfigOptionInt*>(opt)->value = value; break;
@@ -516,6 +552,11 @@ void ConfigBase::set(const std::string &opt_key, int value, bool create)
 
 void ConfigBase::set(const std::string &opt_key, double value, bool create)
 {
+    if (opt_key == "printer_technology") {
+        std::cout << "Config::set printer_technology";
+        std::cout << " from value " << (int)(this->option<ConfigOptionEnum<PrinterTechnology>>("printer_technology")->value);
+        std::cout << " to " << value << "\n";
+    }
     ConfigOption *opt = this->option_throw(opt_key, create);
     switch (opt->type()) {
     	case coFloat:  			static_cast<ConfigOptionFloat*>(opt)->value = value; break;
@@ -532,10 +573,28 @@ bool ConfigBase::set_deserialize_nothrow(const t_config_option_key &opt_key_src,
     // Both opt_key and value may be modified by _handle_legacy().
     // If the opt_key is no more valid in this version of Slic3r, opt_key is cleared by _handle_legacy().
     this->handle_legacy(opt_key, value);
+    if (opt_key_src == "printer_technology") {
+        std::cout << "Config::set_deserialize_nothrow printer_technology";
+        auto opt = this->option<ConfigOptionEnum<PrinterTechnology>>("printer_technology");
+        if(opt)
+            std::cout << " from value " << (int)(opt->value);
+        else
+            std::cout << " from 'unfound option' ";
+        std::cout << " to " << value_src << " == " << value <<"\n";
+    }
     if (opt_key.empty())
         // Ignore the option.
         return true;
-    return this->set_deserialize_raw(opt_key, value, append);
+     bool result = this->set_deserialize_raw(opt_key, value, append);
+     if (opt_key_src == "printer_technology") {
+         std::cout << "Config::set_deserialize_nothrow printer_technology, now new value is : ";
+         auto opt = this->option<ConfigOptionEnum<PrinterTechnology>>(opt_key_src);
+         if (opt)
+             std::cout << (int)opt->value << "\n";
+         else
+             std::cout << " nothing; it's not here\n";
+     }
+     return result;
 }
 
 void ConfigBase::set_deserialize(const t_config_option_key& opt_key_src, const std::string& value_src, bool append)
@@ -586,6 +645,14 @@ bool ConfigBase::set_deserialize_raw(const t_config_option_key &opt_key_src, con
     }
     
     ConfigOption *opt = this->option(opt_key, true);
+    if (opt_key_src == "printer_technology") {
+        std::cout << "Config::set_deserialize printer_technology";
+        if (opt == nullptr)
+            std::cout << " for the first time ";
+        else
+            std::cout << " from value " << (int)(this->option<ConfigOptionEnum<PrinterTechnology>>("printer_technology")->value);
+        std::cout << " to " << value << "\n";
+    }
     if (opt == nullptr)
         throw new UnknownOptionException(opt_key);
 
@@ -893,9 +960,17 @@ ConfigOption* DynamicConfig::optptr(const t_config_option_key &opt_key, bool cre
 //        throw Slic3r::RuntimeError(std::string("Invalid option name: ") + opt_key);
         // Let the parent decide what to do if the opt_key is not defined by this->def().
         return nullptr;
-    ConfigOption *opt = optdef->create_default_option();
-    this->options.emplace_hint(it, opt_key, std::unique_ptr<ConfigOption>(opt));
-    return opt;
+    std::unique_ptr<ConfigOption> opt = optdef->create_default_option();
+    ConfigOption* ptr = opt.get();
+    if (opt_key == "printer_technology") {
+        std::cout << "DynamicConfig::optptr get ptr " << (uint64_t)ptr << "\n";
+    }
+    this->options.emplace_hint(it, opt_key, std::move(opt));
+    if (opt_key == "printer_technology") {
+        auto it2 = options.find(opt_key);
+        std::cout << "DynamicConfig::optptr ptr after move into map " << (uint64_t)(it2->second.get()) <<" -> "<< it2->second->getInt() << "\n";
+    }
+    return ptr;
 }
 
 const ConfigOption* DynamicConfig::optptr(const t_config_option_key &opt_key) const

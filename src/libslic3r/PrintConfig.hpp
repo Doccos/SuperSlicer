@@ -160,9 +160,9 @@ template<> inline const t_config_enum_values& ConfigOptionEnum<PrinterTechnology
     static t_config_enum_values keys_map = {
         {"FFF", ptFFF},
         {"SLA", ptSLA},
-        {"SLS", ptSLS},
-        {"CNC", ptMill},
-        {"LSR", ptLaser},
+        //{"SLS", ptSLS},
+        //{"CNC", ptMill},
+        //{"LSR", ptLaser},
     };
     return keys_map;
 }
@@ -500,6 +500,11 @@ protected:
         StaticCache(T* _defaults, std::function<void(T*, StaticCache<T>*)> initialize) : m_defaults(_defaults) {
             initialize(_defaults , this);
             this->finalize(_defaults);
+            ConfigOption* optptr = this->optptr("printer_technology", m_defaults);
+            if (optptr) {
+                ConfigOptionEnum<PrinterTechnology>* opt = static_cast<ConfigOptionEnum<PrinterTechnology>*>(optptr);
+                std::cout << "create default config @" << (uint64_t)_defaults << " with option printer_technology @" << (uint64_t)(opt) << " value " << (int)(opt->value) << "\n";
+            }
         }
         ~StaticCache() { delete m_defaults; m_defaults = nullptr; }
 
@@ -1433,7 +1438,48 @@ class FullPrintConfig :
     public PrintRegionConfig,
     public PrintConfig
 {
-    STATIC_PRINT_CONFIG_CACHE_DERIVED(FullPrintConfig)
+    //STATIC_PRINT_CONFIG_CACHE_DERIVED(FullPrintConfig)
+public:
+    /* Overrides ConfigBase::optptr(). Find ando/or create a ConfigOption instance for a given name. */
+    const ConfigOption* optptr(const t_config_option_key& opt_key) const override
+    {
+        const ConfigOption* opt = config_cache().optptr(opt_key, this);
+        if (opt == nullptr && parent != nullptr)
+            /*if not find, try with the parent config.*/
+            opt = parent->option(opt_key);
+        return opt;
+    }
+
+    /* Overrides ConfigBase::optptr(). Find ando/or create a ConfigOption instance for a given name. */
+    ConfigOption* optptr(const t_config_option_key& opt_key, bool create = false) override
+    {
+        return config_cache().optptr(opt_key, this);
+    }
+    /* Overrides ConfigBase::keys(). Collect names of all configuration values maintained by this configuration store. */
+    t_config_option_keys     keys() const override { return config_cache().keys(); }
+    const t_config_option_keys& keys_ref() const override { return config_cache().keys(); }
+    static const FullPrintConfig& defaults() { return config_cache().defaults(); }
+private:
+    static const StaticPrintConfig::StaticCache<FullPrintConfig>& config_cache()
+    {
+        static StaticPrintConfig::StaticCache<FullPrintConfig> threadsafe_cache_FullPrintConfig(new FullPrintConfig(1),
+            [](FullPrintConfig* def, StaticPrintConfig::StaticCache<FullPrintConfig>* cache) {
+            def->initialize(*cache, (const char*)def);
+            ConfigOption* my_opt = cache->optptr("printer_technology", def);
+             std::cout << "After creation, the default FullPrintConfig:" << (uint64_t)(def);
+            if (my_opt == nullptr)
+                std::cout << " has no printer tech \n";
+            else
+                std::cout << "  has no printer tech @" << (uint64_t)(my_opt) << " value " << (int)(((ConfigOptionEnum<PrinterTechnology>*)my_opt)->value);
+        });
+        return threadsafe_cache_FullPrintConfig;
+    }
+public:
+    /* Overrides ConfigBase::def(). Static configuration definition. Any value stored into this ConfigBase shall have its definition here. */
+    const ConfigDef* def() const override { return &print_config_def; }
+    /* Handle legacy and obsoleted config keys */
+    void                handle_legacy(t_config_option_key& opt_key, std::string& value) const override
+{ PrintConfigDef::handle_legacy(opt_key, value); }
     FullPrintConfig() : PrintObjectConfig(0), PrintRegionConfig(0), PrintConfig(0) { *this = config_cache().defaults(); }
 
 public:

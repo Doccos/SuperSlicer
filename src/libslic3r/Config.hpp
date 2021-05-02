@@ -163,13 +163,13 @@ enum PrinterTechnology : uint8_t
     // Stereolitography
     ptSLA = 1 << 1,
     // Selective Laser-Sintering
-    ptSLS = 1 << 2,
+    //ptSLS = 1 << 2,
     // CNC
-    ptMill = 1 << 3,
+    //ptMill = 1 << 3,
     // Laser engraving
-    ptLaser = 1 << 4,
+    //ptLaser = 1 << 4,
     // Any technology, useful for parameters compatible with both ptFFF and ptSLA
-    ptAny = ptFFF | ptSLA | ptSLS | ptMill | ptLaser,
+    ptAny = ptFFF | ptSLA,// | ptSLS | ptMill | ptLaser,
     // Unknown, useful for command line processing
     ptUnknown = 1 << 7
 };
@@ -1435,11 +1435,13 @@ public:
     }
 
     void set(const ConfigOption *rhs) override {
+        std::cout << "set enum "<< (uint64_t)rhs <<" to " << rhs->serialize() << ": "<< (int)this->value << "=>";
         if (rhs->type() != this->type())
             throw Slic3r::RuntimeError("ConfigOptionEnum<T>: Assigning an incompatible type");
         // rhs could be of the following type: ConfigOptionEnumGeneric or ConfigOptionEnum<T>
         this->value = (T)rhs->getInt();
         this->phony = rhs->phony;
+        std::cout << (int)this->value << "\n";
     }
 
     std::string serialize() const override
@@ -1453,7 +1455,10 @@ public:
     bool deserialize(const std::string &str, bool append = false) override
     {
         UNUSED(append);
-        return from_string(str, this->value);
+        std::cout << "deserialize enum from " << str << " : " << (int)this->value << "=>";
+        bool ok = from_string(str, this->value);
+        std::cout << (int)this->value << "\n";
+        return ok;
     }
 
     static bool has(T value) 
@@ -1567,9 +1572,9 @@ public:
     template<typename T> const T* 		get_default_value() const { return static_cast<const T*>(this->default_value.get()); }
 
     // Create an empty option to be used as a base for deserialization of DynamicConfig.
-    ConfigOption*						create_empty_option() const;
+    std::unique_ptr<ConfigOption>       create_empty_option() const;
     // Create a default option to be inserted into a DynamicConfig.
-    ConfigOption*						create_default_option() const;
+    std::unique_ptr<ConfigOption>       create_default_option() const;
 
     template<class Archive> ConfigOption* load_option_from_archive(Archive &archive) const {
     	if (this->nullable) {

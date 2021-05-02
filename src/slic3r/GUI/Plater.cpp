@@ -1997,7 +1997,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     , m_project_filename(wxEmptyString)
 {
     this->q->SetFont(Slic3r::GUI::wxGetApp().normal_font());
-
+    std::cout << " set fff print to background_process, this print has the config " << "" << (uint64_t)&fff_print.config() << "\n";
     background_process.set_fff_print(&fff_print);
     background_process.set_sla_print(&sla_print);
     background_process.set_gcode_result(&gcode_result);

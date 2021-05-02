@@ -8,9 +8,11 @@ namespace Slic3r {
 
 void GUI::Job::run()
 {
+    std::cout << "start a job\n";
     m_running.store(true);
     process();
     m_running.store(false);
+    std::cout << "a job stopped\n";
     
     // ensure to call the last status to finalize the job
     update_status(status_range(), "");

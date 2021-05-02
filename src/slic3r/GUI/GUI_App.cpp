@@ -625,6 +625,7 @@ static void generic_exception_handle()
 
 void GUI_App::post_init()
 {
+    std::cout << "GUI_APP::post_init\n";
     assert(initialized());
     if (! this->initialized())
         throw Slic3r::RuntimeError("Calling post_init() while not yet initialized");
@@ -866,11 +867,14 @@ bool GUI_App::on_init_inner()
         scrn->SetText(_L("Loading configuration")+ dots);
     }
 
+    std::cout << "GUI_App::PresetBundle::new" << "\n";
     preset_bundle = new PresetBundle();
+    std::cout << "GUI_App:on_init_inner test point 1 : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)preset_bundle->printers.get_edited_preset().printer_technology() << "\n";
 
     // just checking for existence of Slic3r::data_dir is not enough : it may be an empty directory
     // supplied as argument to --datadir; in that case we should still run the wizard
     preset_bundle->setup_directories();
+    std::cout << "GUI_App:on_init_inner test point 2 : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)preset_bundle->printers.get_edited_preset().printer_technology() << "\n";
 
     if (is_editor()) {
 #ifdef __WXMSW__ 
@@ -878,16 +882,19 @@ bool GUI_App::on_init_inner()
         if (app_config->get("associate_3mf") == "1")
 #endif // ENABLE_CUSTOMIZABLE_FILES_ASSOCIATION_ON_WIN
             associate_3mf_files();
+        std::cout << "GUI_App:on_init_inner test point 3 : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)preset_bundle->printers.get_edited_preset().printer_technology() << "\n";
 #if ENABLE_CUSTOMIZABLE_FILES_ASSOCIATION_ON_WIN
         if (app_config->get("associate_stl") == "1")
             associate_stl_files();
 #endif // ENABLE_CUSTOMIZABLE_FILES_ASSOCIATION_ON_WIN
 #endif // __WXMSW__
+        std::cout << "GUI_App:on_init_inner test point 4 : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)preset_bundle->printers.get_edited_preset().printer_technology() << "\n";
 
         preset_updater = new PresetUpdater();
         Bind(EVT_SLIC3R_VERSION_ONLINE, [this](const wxCommandEvent& evt) {
         app_config->set("version_online", into_u8(evt.GetString()));
         app_config->save();
+        std::cout << "GUI_App:on_init_inner test point 5 : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)preset_bundle->printers.get_edited_preset().printer_technology() << "\n";
             if (this->plater_ != nullptr) {
                 //if (*Semver::parse(SLIC3R_VERSION_FULL) < *Semver::parse(into_u8(evt.GetString()))) {
                     this->plater_->get_notification_manager()->push_notification(NotificationType::NewAppAvailable);
@@ -903,23 +910,29 @@ bool GUI_App::on_init_inner()
             associate_gcode_files();
 #endif // __WXMSW__
     }
+    std::cout << "GUI_App:on_init_inner test point 6 : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)preset_bundle->printers.get_edited_preset().printer_technology() << "\n";
 
     // initialize label colors and fonts
     init_label_colours();
     init_fonts();
     wxImage::AddHandler(new wxJPEGHandler());
+    std::cout << "GUI_App:on_init_inner test point 7 : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)preset_bundle->printers.get_edited_preset().printer_technology() << "\n";
 
     // If load_language() fails, the application closes.
     load_language(wxString(), true);
 
+    std::cout << "GUI_App:on_init_inner test point 8 : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)preset_bundle->printers.get_edited_preset().printer_technology() << "\n";
+
     // Suppress the '- default -' presets.
     preset_bundle->set_default_suppressed(app_config->get("no_defaults") == "1");
+    std::cout << "GUI_App:on_init_inner test point 8.1 : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)preset_bundle->printers.get_edited_preset().printer_technology() << "\n";
     try {
         preset_bundle->load_presets(*app_config);
     } catch (const std::exception &ex) {
         show_error(nullptr, ex.what());
     }
 
+    std::cout << "GUI_App:on_init_inner test point 9 : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)preset_bundle->printers.get_edited_preset().printer_technology() << "\n";
 #ifdef WIN32
 #if !wxVERSION_EQUAL_OR_GREATER_THAN(3,1,3)
     register_win32_dpi_event();
@@ -929,21 +942,26 @@ bool GUI_App::on_init_inner()
 
     // Let the libslic3r know the callback, which will translate messages on demand.
     Slic3r::I18N::set_translate_callback(libslic3r_translate_callback);
+    std::cout << "GUI_App:on_init_inner test point 10 : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)preset_bundle->printers.get_edited_preset().printer_technology() << "\n";
 
     // application frame
     if (scrn && is_editor())
         scrn->SetText(_L("Preparing settings tabs") + dots);
 
     mainframe = new MainFrame();
+    std::cout << "GUI_App:on_init_inner test point 11 : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)preset_bundle->printers.get_edited_preset().printer_technology() << "\n";
     // hide settings tabs after first Layout
     if (is_editor())
         mainframe->select_tab(MainFrame::ETabType::LastPlater);
+    std::cout << "GUI_App:on_init_inner test point 12 : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)preset_bundle->printers.get_edited_preset().printer_technology() << "\n";
 
     sidebar().obj_list()->init_objects(); // propagate model objects to object list
 //     update_mode(); // !!! do that later
     SetTopWindow(mainframe);
+    std::cout << "GUI_App:on_init_inner test point 13 : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)preset_bundle->printers.get_edited_preset().printer_technology() << "\n";
 
     m_printhost_job_queue.reset(new PrintHostJobQueue(mainframe->printhost_queue_dlg()));
+    std::cout << "GUI_App:on_init_inner test point 14 : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)preset_bundle->printers.get_edited_preset().printer_technology() << "\n";
 
     if (is_gcode_viewer()) {
         mainframe->update_layout();
@@ -963,6 +981,7 @@ bool GUI_App::on_init_inner()
     other_instance_message_handler()->bring_instance_forward();
 #endif //__APPLE__
 
+    std::cout << "GUI_APP::Register wxEVT_IDLE\n";
     Bind(wxEVT_IDLE, [this](wxIdleEvent& event)
     {
         if (! plater_)
@@ -1005,6 +1024,7 @@ bool GUI_App::on_init_inner()
 			check_updates(false);
 
 			CallAfter([this] {
+                std::cout << "GUI_APP::config_wizard_startup\n";
 				config_wizard_startup();
 				preset_updater->slic3r_update_notify();
 				preset_updater->sync(preset_bundle);
@@ -1989,12 +2009,19 @@ bool GUI_App::checked_tab(Tab* tab)
 // Update UI / Tabs to reflect changes in the currently loaded presets
 void GUI_App::load_current_presets(bool check_printer_presets_ /*= true*/)
 {
+    std::cout << "GUI_App:load_current_presets start : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)preset_bundle->printers.get_edited_preset().printer_technology() << "\n";
+
     // check printer_presets for the containing information about "Print Host upload"
     // and create physical printer from it, if any exists
     if (check_printer_presets_)
         check_printer_presets();
+    std::cout << "GUI_App:load_current_presets check_printer_presets : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)preset_bundle->printers.get_edited_preset().printer_technology() << "\n";
+
 
     PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
+
+    std::cout << "GUI_App:load_current_presets check_printer_presets : (" << preset_bundle->printers.get_edited_preset().name << ") = " << (int)printer_technology << "\n";
+
 	this->plater()->set_printer_technology(printer_technology);
     for (Tab *tab : tabs_list)
 		if (tab->supports_printer_technology(printer_technology)) {

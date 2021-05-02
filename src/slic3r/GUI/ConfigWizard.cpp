@@ -54,6 +54,9 @@ using Config::SnapshotDB;
 
 bool Bundle::load(fs::path source_path, bool ais_in_resources, bool ais_prusa_bundle)
 {
+
+    std::cout << "configwizzard Bundle::load\n" << "\n";
+
     this->preset_bundle = std::make_unique<PresetBundle>();
     this->is_in_resources = ais_in_resources;
     this->is_prusa_bundle = ais_prusa_bundle;
@@ -2472,7 +2475,7 @@ void ConfigWizard::priv::apply_config(AppConfig *app_config, PresetBundle *prese
             }
         }
     }
-
+    std::cout << "ConfigWizard::priv::apply_config : set the preferred_model preset to " << preferred_model << "\n";
     preset_bundle->load_presets(*app_config, preferred_model);
 
     if (page_custom->custom_wanted()) {
@@ -2493,7 +2496,7 @@ void ConfigWizard::priv::apply_config(AppConfig *app_config, PresetBundle *prese
 static const boost::unordered_map<PrinterTechnology, std::string> tech_to_string{ {
     { PrinterTechnology::ptFFF, "FFF" },
     { PrinterTechnology::ptSLA, "SLA" },
-    { PrinterTechnology::ptSLS, "SLS" },
+    //{ PrinterTechnology::ptSLS, "SLS" },
     } };
 
 void ConfigWizard::priv::update_presets_in_config(const std::string& section, const std::string& alias_key, bool add)

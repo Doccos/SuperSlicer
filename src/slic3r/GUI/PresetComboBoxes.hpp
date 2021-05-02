@@ -97,7 +97,7 @@ protected:
     int thin_space_icon_width;
     int wide_space_icon_width;
 
-    PrinterTechnology printer_technology {ptAny};
+    PrinterTechnology printer_technology {ptFFF};
 
     void invalidate_selection();
     void validate_selection(bool predicate = false);

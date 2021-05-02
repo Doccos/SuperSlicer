@@ -136,8 +136,8 @@ VendorProfile VendorProfile::from_ini(const ptree &tree, const boost::filesystem
                 res.technologies.push_back(PrinterTechnology::ptFFF);
             else if (technology == "SLA")
                 res.technologies.push_back(PrinterTechnology::ptSLA);
-            else if (technology == "SLS")
-                res.technologies.push_back(PrinterTechnology::ptSLS);
+            //else if (technology == "SLS")
+            //    res.technologies.push_back(PrinterTechnology::ptSLS);
             else
                 BOOST_LOG_TRIVIAL(error) << boost::format("Vendor bundle: `%1%`: Malformed technologies field: `%2%`") % id % technologies_field;
         }
@@ -1443,6 +1443,7 @@ std::vector<std::string> PresetCollection::dirty_options(const Preset *edited, c
 // If the preset with index idx does not exist, a first visible preset is selected.
 Preset& PresetCollection::select_preset(size_t idx)
 {
+    std::cout << "PresetCollection::select_preset " << m_edited_preset.name << " => " << m_presets[idx].name << "\n";
     for (Preset &preset : m_presets)
         preset.is_dirty = false;
     if (idx >= m_presets.size())
